@@ -11,6 +11,7 @@ public class DynamicFieldWrapper
     {
         _values = values;
         _fieldName = fieldName;
+        Options = new List<SelectListItem>();
     }
 
     public string Value
@@ -29,7 +30,7 @@ public class DynamicFieldWrapper
     // Boolean value
     public bool BooleanValue
     {
-        get => _values.TryGetValue(_fieldName, out var value) && bool.TryParse(value?.ToString(), out var b) && b;
+        get => _values.TryGetValue(_fieldName, out var value) && bool.TryParse(value?.ToString(), out var boolVal) && boolVal;
         set => _values[_fieldName] = value;
     }
 

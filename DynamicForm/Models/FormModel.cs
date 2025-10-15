@@ -53,8 +53,9 @@ public class DataSourceConfig
 }
 public class FieldAction
 {
-    public string Type { get; set; }  // "show", "hide", "enable", "disable", "setValue"
-    public object Value { get; set; } // Only used when Type is "setValue"
+    public string Type { get; set; }  // "show", "hide", "enable", "disable", "setValue", "calculate"
+    public object Value { get; set; } // Used for "setValue" and "calculate"
+    public string Expression { get; set; } // Used for "calculate" - e.g., "field1 * field2"
 }
 
 public class FormDefinition
