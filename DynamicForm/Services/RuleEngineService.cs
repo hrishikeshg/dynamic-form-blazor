@@ -5,12 +5,13 @@ public class RuleEngineService : IRuleEngineService
 {
     private readonly ConcurrentDictionary<string, DateTime> _lastEvaluationTimes = new();
     private readonly TimeSpan _evaluationDebounceTime = TimeSpan.FromMilliseconds(100);
-    private readonly ICalculationEngineService _calculationService;
+    private readonly IEnhancedCalculationEngineService _calculationService;
 
-    public RuleEngineService(ICalculationEngineService calculationService)
+    public RuleEngineService(IEnhancedCalculationEngineService calculationService)
     {
         _calculationService = calculationService;
     }
+
     public async Task EvaluateRulesAsync(FormDefinition formDefinition, Dictionary<string, object> formValues, string sourceFieldId)
     {
         // Debounce rule evaluation
@@ -83,7 +84,7 @@ public class RuleEngineService : IRuleEngineService
                 case "setvalue":
                     formValues[targetField.Name] = action.Value;
                     break;
-                case "calculate": // NEW: Handle calculations
+                case "calculate":
                     await HandleCalculationAsync(action, formValues, targetField, formDefinition);
                     break;
                 case "setrequired":
@@ -109,14 +110,20 @@ public class RuleEngineService : IRuleEngineService
 
         if (result != null)
         {
+            // Format the result if it's a number
+            if (result is decimal decimalResult && targetField.Type == FieldType.Number)
+            {
+                result = _calculationService.FormatNumber(decimalResult, targetField.DecimalPlaces ?? 2);
+            }
+
             // Set the result to the target field
             formValues[targetField.Name] = result;
 
-            // If the target field has rules, evaluate them too (for chained calculations)
+            // If the target field has rules, evaluate them too
             if (targetField.Rules.Any())
             {
                 await EvaluateRulesAsync(formDefinition, formValues, targetField.Id);
-            }
+            }            
         }
     }
     private void RevertToOriginalState(FormField targetField, Dictionary<string, object> formValues)

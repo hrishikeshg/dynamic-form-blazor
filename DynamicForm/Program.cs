@@ -15,6 +15,8 @@ builder.Services.AddScoped<IFormService, FormService>();
 builder.Services.AddScoped<FormBuilderState>();
 builder.Services.AddScoped<FormStateService>();
 builder.Services.AddScoped<ICalculationEngineService, CalculationEngineService>();
+builder.Services.AddScoped<INumberFormatService, NumberFormatService>();
+builder.Services.AddScoped<IEnhancedCalculationEngineService, EnhancedCalculationEngineService>();
 builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
 
 var app = builder.Build();

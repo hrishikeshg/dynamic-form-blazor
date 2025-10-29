@@ -4,10 +4,11 @@
 @using DynamicForm.Services
 @using System.Linq.Expressions
 @using Microsoft.AspNetCore.Components.Rendering
+@using System.Globalization
 @typeparam TItem
 @inherits OwningComponentBase<FormService>
 @inject IRuleEngineService RuleEngineService
-
+@inject INumberFormatService _numberFormatService
 <EditForm Model="@FormValues"
           FormName="@GetFormName()"
           OnValidSubmit="@(() => HandleValidSubmitInternal())">
@@ -20,7 +21,7 @@
             <label>@field.Label @(field.IsRequired ? "*" : "")</label>
 
             @{
-                var wrapper = new DynamicFieldWrapper(FormValues, field.Name)
+                 var wrapper = new DynamicFieldWrapper(FormValues, field.Name)
                 {
                     Options = field.Data ?? new List<SelectListItem>()
                 };
@@ -36,12 +37,22 @@
                                disabled="@field.IsReadonly" />
                     break;
                 case FieldType.Number:
-                    <InputNumber TValue="int?"
-                                 Value="@wrapper.NumberValue"
-                                 ValueChanged="@(async (value) => await HandleNumberValueChanged(field, value))"
-                                 ValueExpression="@(() => wrapper.NumberValue)"
-                                 class="form-control"
-                                 disabled="@field.IsReadonly" />
+                    <input type="number"
+                           value="@FormattedNumberValue(field)"
+                           @onchange="@(async (e) => await HandleNumberInputChanged(field, e))"
+                           @oninput="@(async (e) => await ValidateNumberInput(field, e))"
+                           step="@GetStepForField(field)"
+                           min="@field.MinValue"
+                           max="@field.MaxValue"
+                           class="form-control @(GetNumberFieldClass(field))"
+                           disabled="@field.IsReadonly" />
+                    @if (HasNumberError(field))
+                    {
+                        <div class="text-danger small">
+                            Please enter a valid number with up to 3 decimal places
+                        </div>
+                    }
+                    
                     break;
                 case FieldType.Checkbox:
                     <InputCheckbox TValue="bool"
@@ -93,6 +104,7 @@
     private Dictionary<string, object> FormValues = new();
     private FormFieldModel WorkingModel;
     private bool UseDictionaryModel => FormData is Dictionary<string, object>;
+    private Dictionary<string, bool> _numberFieldErrors = new();
 
     protected override void OnInitialized()
     {
@@ -118,7 +130,131 @@
             }
         }
     }
+    private string FormattedNumberValue(FormField field)
+    {
+        if (FormValues.TryGetValue(field.Name, out var value) && value != null)
+        {
+            if (decimal.TryParse(value.ToString(), out decimal decimalValue))
+            {
+                // Return raw value for input (no formatting)
+                //return decimalValue.ToString(CultureInfo.InvariantCulture);
+                return decimalValue.ToString($"F{3}", System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+        return string.Empty;
+    }
 
+    private string GetStepForField(FormField field)
+    {
+        return field.AllowDecimal ? "any" : "1";
+    }
+
+    private async Task HandleNumberInputChanged(FormField field, ChangeEventArgs e)
+    {
+        var inputValue = e.Value?.ToString();
+
+        if (string.IsNullOrEmpty(inputValue))
+        {
+            FormValues[field.Name] = null;
+            await FormDataChanged.InvokeAsync(FormData);
+            await RuleEngineService.EvaluateRulesAsync(FormDefinition, FormValues, field.Id);
+            return;
+        }
+
+        if (decimal.TryParse(inputValue, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal decimalValue))
+        {
+            // Apply min/max constraints
+            if (field.MinValue.HasValue && decimalValue < field.MinValue.Value)
+                decimalValue = field.MinValue.Value;
+            if (field.MaxValue.HasValue && decimalValue > field.MaxValue.Value)
+                decimalValue = field.MaxValue.Value;
+
+            // Store the raw decimal value
+            FormValues[field.Name] = decimalValue;
+
+            // Update bound data
+            await UpdateBoundData(field, decimalValue);
+
+            // Evaluate rules
+            await RuleEngineService.EvaluateRulesAsync(FormDefinition, FormValues, field.Id);
+            //await EvaluateRules(field.Id);
+        }
+    }
+
+    private async Task UpdateBoundData(FormField field, decimal value)
+    {
+        if (FormData != null)
+        {
+            if (FormData is Dictionary<string, object> dict)
+            {
+                dict[field.Name] = value;
+            }
+            else
+            {
+                var prop = typeof(TItem).GetProperty(field.Name);
+                if (prop != null)
+                {
+                    // Convert to the appropriate type
+                    object convertedValue = prop.PropertyType == typeof(decimal) ? value :
+                                          prop.PropertyType == typeof(double) ? (double)value :
+                                          prop.PropertyType == typeof(float) ? (float)value :
+                                          prop.PropertyType == typeof(int) ? (int)Math.Round(value) :
+                                          (object)value;
+
+                    prop.SetValue(FormData, convertedValue);
+                }
+            }
+            await FormDataChanged.InvokeAsync(FormData);
+        }
+    }
+
+    // Helper method to get display value for preview or labels
+    private string GetFormattedDisplayValue(FormField field)
+    {
+        if (FormValues.TryGetValue(field.Name, out var value) && value != null)
+        {
+            if (decimal.TryParse(value.ToString(), out decimal decimalValue))
+            {
+                return FormatDecimalForDisplay(decimalValue, field.DecimalPlaces);
+            }
+            return value.ToString();
+        }
+        return string.Empty;
+    }
+
+    private string FormatDecimalForDisplay(decimal value, int? decimalPlaces)
+    {
+        return value.ToString($"F{decimalPlaces}", CultureInfo.InvariantCulture);
+    }
+    private async Task ValidateNumberInput(FormField field, ChangeEventArgs e)
+    {
+        var inputValue = e.Value?.ToString();
+
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            var isValid = _numberFormatService.IsValidDecimal(inputValue, 3);
+            _numberFieldErrors[field.Name] = !isValid;
+
+            if (!isValid)
+            {
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            _numberFieldErrors.Remove(field.Name);
+        }
+    }
+
+    private bool HasNumberError(FormField field)
+    {
+        return _numberFieldErrors.ContainsKey(field.Name) && _numberFieldErrors[field.Name];
+    }
+
+    private string GetNumberFieldClass(FormField field)
+    {
+        return HasNumberError(field) ? "is-invalid" : "";
+    }
     private void StoreOriginalFieldStates()
     {
         foreach (var field in FormDefinition.Fields)
@@ -135,13 +271,21 @@
         await RuleEngineService.EvaluateRulesAsync(FormDefinition, FormValues, field.Id);
         StateHasChanged();
     }
-
-    private async Task HandleNumberValueChanged(FormField field, int? value)
+    private async Task HandleNumberValueChanged(FormField field, ChangeEventArgs e)
     {
-        await UpdateFormValue(field, value);
-        await RuleEngineService.EvaluateRulesAsync(FormDefinition, FormValues, field.Id);
-        StateHasChanged();
+        if (decimal.TryParse(e.Value?.ToString(), out decimal decimalValue))
+        {
+            // Apply decimal places formatting
+            var formattedValue = FormatDecimalValue(decimalValue, field.DecimalPlaces ?? 2);
+            await HandleFieldValueChanged(field, formattedValue);
+        }
     }
+
+    private string FormatDecimalValue(decimal value, int decimalPlaces)
+    {
+        return value.ToString($"F{decimalPlaces}", System.Globalization.CultureInfo.InvariantCulture);
+    }
+    
     private async Task UpdateFormValue(FormField field, object value)
     {
         FormValues[field.Name] = value;

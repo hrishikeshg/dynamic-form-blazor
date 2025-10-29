@@ -74,7 +74,61 @@
             <small class="form-text text-muted">Optional regular expression pattern for validation</small>
         </div>
     }
-
+    @if (Field.Type == FieldType.Number)
+    {
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>Number Configuration</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Decimal Places</label>
+                            <InputNumber @bind-Value="Field.DecimalPlaces" class="form-control"
+                                         min="0" max="6" />
+                            <small class="form-text text-muted">Number of decimal places to display (0-6)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mt-4">
+                            <InputCheckbox @bind-Value="Field.AllowDecimal" class="form-check-input" />
+                            <label class="form-check-label">Allow Decimal Input</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Default Value</label>
+                            <input type="number"
+                                   @bind="DefaultNumberValue"
+                                   class="form-control"
+                                   step="@GetStepValue()" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Minimum Value</label>
+                            <input type="number"
+                                   @bind="Field.MinValue"
+                                   class="form-control"
+                                   step="@GetStepValue()" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Maximum Value</label>
+                            <input type="number"
+                                   @bind="Field.MaxValue"
+                                   class="form-control"
+                                   step="@GetStepValue()" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
     @if (Field.Type == FieldType.DropDown || Field.Type == FieldType.CascadingDropDown)
     {
         <div class="form-group">
@@ -248,7 +302,18 @@
         }
         return Field.CascadingData[parentValue];
     }
+    private string GetStepValue()
+    {
+        // For decimal numbers, use a small step to allow 3 decimal places
+        // For integers, use step=1
+        return Field.AllowDecimal ? "any" : "1";
+    }
 
+    private string DefaultNumberValue
+    {
+        get => Field.DefaultValue;
+        set => Field.DefaultValue = value;
+    }
     private void AddCascadingOption(string parentValue)
     {
         GetCascadingOptions(parentValue).Add(new SelectListItem());

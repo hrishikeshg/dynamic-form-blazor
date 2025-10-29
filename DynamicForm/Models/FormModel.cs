@@ -25,6 +25,12 @@ public class FormField
     public string RegexPattern { get; set; }
     public List<SelectListItem> Data { get; set; } = new(); // For dropdowns only
 
+    public int? DecimalPlaces { get; set; } = 2; // Default to 2 decimal places
+    public bool AllowDecimal { get; set; } = true; // Allow decimal input
+    //public decimal? Step { get; set; } = 0.01m; // Default step for number input
+    public decimal? MinValue { get; set; }
+    public decimal? MaxValue { get; set; }
+
     // For cascading dropdowns
     public string ParentFieldId { get; set; }
     public Dictionary<string, List<SelectListItem>> CascadingData { get; set; } = new();
