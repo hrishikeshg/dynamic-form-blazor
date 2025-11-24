@@ -64,11 +64,32 @@ public class FieldAction
     public string Expression { get; set; } // Used for "calculate" - e.g., "field1 * field2"
 }
 
-public class FormDefinition
+public partial class FormDefinition
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Name { get; set; }
     public List<FormField> Fields { get; set; } = new();
+}
+// Update FormDefinition to handle layout persistence
+public partial class FormDefinition
+{
+    public void InitializeDefaultLayout()
+    {
+        if (Layout == null)
+        {
+            Layout = new FormLayout { Type = LayoutType.Vertical };
+        }
+
+        if (Layout.Sections == null || !Layout.Sections.Any())
+        {
+            Layout.Sections.Add(new LayoutSection
+            {
+                Title = "Main Section",
+                FieldIds = Fields.Select(f => f.Id).ToList(),
+                Columns = 1
+            });
+        }
+    }
 }
 
 public class SelectListItem
