@@ -17,12 +17,14 @@ public class FormBuilderState
             Name = "New Form",
             Fields = new List<FormField>()
         };
+        CurrentForm.InitializeDefaultLayout();
         NotifyStateChanged();
     }
 
     public void LoadForm(FormDefinition form)
     {
         CurrentForm = form;
+        CurrentForm.InitializeDefaultLayout();
         NotifyStateChanged();
     }
 
