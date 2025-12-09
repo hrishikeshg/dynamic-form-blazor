@@ -768,21 +768,6 @@
         FormValues[targetField.Name] = null;
     }
     
-    private int? GetNumberValue(DynamicFieldWrapper wrapper)
-    {
-        return int.TryParse(wrapper.Value, out var num) ? num : (int?)null;
-    }
-
-    private bool GetBoolValue(DynamicFieldWrapper wrapper)
-    {
-        return bool.TryParse(wrapper.Value, out var boolVal) && boolVal;
-    }
-
-    private DateTime? GetDateValue(DynamicFieldWrapper wrapper)
-    {
-        return DateTime.TryParse(wrapper.Value, out var date) ? date : (DateTime?)null;
-    }
-
     private async Task HandleCascadingChange(FormField field, string value)
     {
         await UpdateFormValue(field, value);

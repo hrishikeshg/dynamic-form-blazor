@@ -12,38 +12,29 @@ public class AdvancedTableLayoutService : IAdvancedTableLayoutService
     }
 
     public DynamicTable CreateTable(string name, int rows = 1, int columns = 1)
-    {
-        try
-        {        
-            var table = new DynamicTable
-            {
-                Name = name,
-                Rows = Math.Max(1, rows),
-                Columns = Math.Max(1, columns),
-                TableRows = new List<TableRow>(),
-                Headers = new List<TableHeader>(),
-                Footer = new TableFooter { Cells = new List<TableCell>() }
-            };
-
-            InitializeTableStructure(table);
-            return table;
-        }
-        catch (Exception ex)
+    {              
+        var table = new DynamicTable
         {
-            throw;
-        }
+            Name = name,
+            Rows = Math.Max(1, rows),
+            Columns = Math.Max(1, columns),
+            TableRows = new List<TableRow>(),
+            Headers = new List<TableHeader>(),
+            Footer = new TableFooter { Cells = new List<TableCell>() }
+        };
+
+        InitializeTableStructure(table);
+        return table;        
     }
 
     private void InitializeTableStructure(DynamicTable table)
     {
-        //// Ensure collections are initialized
-        //table.TableRows ??= new List<TableRow>();
-        //table.Headers ??= new List<TableHeader>();
-        //table.Footer ??= new TableFooter { Cells = new List<TableCell>() };
-        //table.Footer.Cells ??= new List<TableCell>();
+        // Ensure collections are initialized
+        table.TableRows ??= new List<TableRow>();
+        table.Headers ??= new List<TableHeader>();
+        table.Footer ??= new TableFooter { Cells = new List<TableCell>() };
+        table.Footer.Cells ??= new List<TableCell>();
 
-        //table.TableRows.Clear();
-        // Clear existing data
         table.TableRows.Clear();
         table.Headers.Clear();
         table.Footer.Cells.Clear();
@@ -66,13 +57,13 @@ public class AdvancedTableLayoutService : IAdvancedTableLayoutService
                     ColSpan = 1,
                     RowSpan = 1,
                     CellType = CellType.StaticText,
-                    Text = "" // Initialize with empty text
+                    Text = string.Empty // Initialize with empty text
                 });
             }
             table.TableRows.Add(row);
         }
 
-        // Initialize headers - SAFE VERSION
+        // Initialize headers 
         for (int j = 0; j < table.Columns; j++)
         {
             table.Headers.Add(new TableHeader
@@ -89,7 +80,7 @@ public class AdvancedTableLayoutService : IAdvancedTableLayoutService
             {
                 ColumnIndex = j,
                 ColSpan = 1,
-                Text = ""
+                Text = string.Empty
             });
         }
     }
@@ -250,8 +241,7 @@ public class AdvancedTableLayoutService : IAdvancedTableLayoutService
     private void ResizeHeaders(DynamicTable table, int newColumns)
     {
         // Ensure Headers list exists
-        if (table.Headers == null)
-            table.Headers = new List<TableHeader>();
+        table.Headers ??= new List<TableHeader>();
 
         // Add missing headers
         while (table.Headers.Count < newColumns)
@@ -273,11 +263,8 @@ public class AdvancedTableLayoutService : IAdvancedTableLayoutService
     private void ResizeFooter(DynamicTable table, int newColumns)
     {
         // Ensure Footer and Cells exist
-        if (table.Footer == null)
-            table.Footer = new TableFooter();
-
-        if (table.Footer.Cells == null)
-            table.Footer.Cells = new List<TableCell>();
+        table.Footer ??= new TableFooter();
+        table.Footer.Cells ??= new List<TableCell>();
 
         // Add missing footer cells
         while (table.Footer.Cells.Count < newColumns)

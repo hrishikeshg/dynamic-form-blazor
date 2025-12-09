@@ -162,6 +162,11 @@
         {
             FormBuilderState.NewForm();
         }
+        // Defensive: ensure CurrentForm exists and has a layout before rendering
+        if (FormBuilderState.CurrentForm == null)
+        {            
+            FormBuilderState.NewForm();
+        }
 
         FormBuilderState.CurrentForm.InitializeDefaultLayout();
     }
@@ -179,18 +184,15 @@
     }
     private void AddNewTable()
     {
-        // Start with a flexible 2x2 table instead of hardcoded 3x3
-        try
-        {        
-            var table = TableLayoutService.CreateTable($"Table {FormBuilderState.CurrentForm.Layout.Tables.Count + 1}", 2, 2);
-            FormBuilderState.CurrentForm.Layout.Tables.Add(table);
-            FormBuilderState.CurrentForm.Layout.Type = LayoutType.Grid;
-            FormBuilderState.NotifyStateChanged();
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        // Ensure layout and tables collection exist, then create a 2x2 table
+        var layout = FormBuilderState.CurrentForm.Layout ??= new FormLayout { Type = LayoutType.Grid };
+        layout.Tables ??= new List<DynamicTable>();
+        
+        var tableIndex = layout.Tables.Count;
+        var table = TableLayoutService.CreateTable($"Table {tableIndex + 1}", 2, 2);
+        layout.Tables.Add(table);
+        layout.Type = LayoutType.Grid;
+        FormBuilderState.NotifyStateChanged();        
     }
 
     private async Task RemoveTable(DynamicTable table)
@@ -263,18 +265,6 @@
         FormBuilderState.TogglePreview();
     }
 
-    // private object CreatePreviewModel()
-    // {
-    //     // Create a dynamic object or dictionary to bind to the form
-    //     // In a real app, you might want to generate a proper type
-    //     var model = new Dictionary<string, object>();
-    //     foreach (var field in FormBuilderState.CurrentForm.Fields)
-    //     {
-    //         model[field.Name] = field.DefaultValue ?? GetDefaultValue(field.Type);
-    //     }
-    //     return model;
-    // }
-
     private object GetDefaultValue(FieldType type)
     {
         return type switch
@@ -308,10 +298,10 @@
         }
 
         // You can process the form values here
-        // For example: save to database, show confirmation, etc.
+        // For example: save to OSDU database, show confirmation, etc.
 
         // Show success message
-        // You might want to use a toast notification or alert here
+        // You might want to use a radzen notification or alert here
         Console.WriteLine("Form submitted successfully in preview mode!");
 
         // Optional: Show alert to user
