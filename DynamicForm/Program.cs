@@ -19,6 +19,7 @@ builder.Services.AddScoped<INumberFormatService, NumberFormatService>();
 builder.Services.AddScoped<IEnhancedCalculationEngineService, EnhancedCalculationEngineService>();
 builder.Services.AddScoped<ITableLayoutService, TableLayoutService>();
 builder.Services.AddScoped<IAdvancedTableLayoutService, AdvancedTableLayoutService>();
+builder.Services.AddScoped<IFileImportService, FileImportService>();
 builder.Services.AddScoped<IRuleEngineService, RuleEngineService>();
 
 var app = builder.Build();
